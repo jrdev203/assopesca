@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema ASSOPESCA Profissional</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        :root { --verde: #006400; --verde2: #008000; --cinza: #f4f6f9; }
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: 'Segoe UI', Arial, sans-serif; background: var(--cinza); }
+        header { background: var(--verde); color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .container { display: flex; flex-direction: row; min-height: 100vh; }
+        .menu { width: 230px; background: #004d00; padding: 15px; display: flex; flex-direction: column; gap: 8px; }
+        .menu button { padding: 12px; background: var(--verde2); color: white; border: none; border-radius: 5px; cursor: pointer; text-align: left; transition: 0.3s; }
+        .menu button:hover { background: #00a000; }
+        main { flex: 1; padding: 15px; width: 100%; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .form-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 15px; }
+        input, select { padding: 10px; border: 1px solid #ccc; border-radius: 4px; width: 100%; }
+        .table-responsive { overflow-x: auto; margin-top: 15px; }
+        table { width: 100%; border-collapse: collapse; background: white; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 12px; }
+        th { background: #eee; }
+        .btn-save { background: var(--verde); color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; }
+        .btn-edit { background: #ffc107; color: black; border: none; padding: 5px 8px; border-radius: 3px; cursor: pointer; }
+        .btn-del { background: #dc3545; color: white; border: none; padding: 5px 8px; border-radius: 3px; cursor: pointer; }
+        .btn-pdf { background: #17a2b8; color: white; border: none; padding: 5px 8px; border-radius: 3px; cursor: pointer; }
+        .login { background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('./img/campos.jpg') center/cover; height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        .login-box { background: white; padding: 30px; border-radius: 10px; width: 100%; max-width: 380px; text-align: center; }
+        .card-boasvindas { background: linear-gradient(rgba(0,100,0,0.7), rgba(0,100,0,0.7)), url('./img/pinheiro.jpg') center/cover no-repeat; color: white; text-align: center; min-height: 500px; display: flex; flex-direction: column; justify-content: center; }
+        .card-boasvindas h1 { font-size: 48px; margin: 0 12px 10px; font-weight: 700; line-height: 1.1; }
+        .card-boasvindas p { font-size: 18px; margin: 0 12px; }
+        @media (max-width: 768px) {
+            .card-boasvindas { min-height: 320px; padding: 20px; }
+            .card-boasvindas h1 { font-size: 25px; }
+            .card-boasvindas p { font-size: 16px; }
+            .container { flex-direction: column; }
+            .menu { width: 100%; flex-direction: row; overflow-x: auto; }
+            .menu button { white-space: nowrap; }
+        }
+        .tela { display: none; } .ativa { display: block; }
+    </style>
+</head>
+<body>
+
+<div id="loginTela" class="login">
+    <div class="login-box">
+        <h2 style="color:var(--verde)">ASSOPESCA</h2>
+        <input id="loginUser" placeholder="Usuário">
+        <input type="password" id="loginPass" placeholder="Senha" onkeypress="if(event.key==='Enter') login()">
+        <button class="btn-save" style="width:100%" onclick="login()">Entrar</button>
+        <hr><input type="password" id="masterCreate" placeholder="Senha Master">
+        <button onclick="criarAdmin()" style="width:100%">Gerar Diretor Inicial</button>
+    </div>
+</div>
+
+<div id="sistema" style="display:none">
+    <header>
+        <div><strong>ASSOPESCA - Gestão</strong></div>
+        <div><span id="nomeUser"></span> | <button onclick="logout()" style="background:red; color:white; border:none; padding:5px; border-radius:3px; cursor:pointer">Sair</button></div>
+    </header>
+
+    <div class="container">
+        <nav class="menu">
+            <button onclick="mostrar('inicio')">🏠 Início</button>
+            <button onclick="mostrar('associados')">👥 Associados</button>
+            <button onclick="mostrar('atendimento')">📝 Atendimento</button>
+            <button onclick="mostrar('relatorios')">📊 Relatórios</button>
+            <div id="menuAdminOnly" style="display:contents">
+                <button onclick="mostrar('colaboradores')">👨‍🔧 Colaboradores</button>
+                <button onclick="mostrar('diretoria')">🏛️ Diretoria</button>
+                <button onclick="mostrar('config')">⚙️ Configurações</button>
+            </div>
+        </nav>
+
+        <main>
+            <section id="inicio" class="tela ativa">
+                <div class="card card-boasvindas">
+                    <h1>BEM-VINDO AO SISTEMA ASSOPESCA</h1>
+                    <p>SISTEMA WEB DE REGISTRO E MONITORAMENTO DE SERVIÇOS DA
+ASSOPESCA</p>
+                </div>
+            </section>
+
+            <section id="associados" class="tela">
+                <div class="card">
+                    <h2>Gestão de Associados</h2>
+                    <input type="hidden" id="assocId">
+                    <div class="form-group">
+                        <input id="assocNome" placeholder="Nome Completo">
+                        <input id="assocCpf" placeholder="CPF">
+                        <input type="date" id="assocEntrada" title="Data Associação">
+                        <input id="assocTel" placeholder="Telefone">
+                        <input id="assocEnd" placeholder="Endereço">
+                    </div>
+                    <button class="btn-save" onclick="salvarAssociado()">Salvar Associado</button>
+                    <button onclick="limparCampos('assoc')">Novo</button>
+                </div>
+                <div class="card"><div class="table-responsive"><table id="tabAssoc"></table></div></div>
+            </section>
+
+            <section id="atendimento" class="tela">
+                <div class="card">
+                    <h2>Registrar Atendimento</h2>
+                    <div class="form-group">
+                        <select id="atAssocBusca"></select>
+                        <select id="atServico">
+                            <option>Manutenção RGP</option><option>Edição dados RGP</option>
+                            <option>Solicitação RGP novo</option><option>Recadastramento</option>
+                            <option>Recurso RGP suspenso</option><option>Emissão declarações</option>
+                            <option>Agendamento Aposentadoria</option><option>Agendamento Salário Materno</option>
+                            <option>Agendamento Auxílio Doença</option><option>Protocolo Seguro Defeso</option>
+                            <option>Consulta Seguro Defeso</option><option>Recursos Defesos</option>
+                            <option>Atualização Cadastro INSS</option><option>Emissão NIT</option>
+                            <option>Matrícula CEI</option><option>Carteira RGP</option><option>Carteira de Sócio</option>
+                        </select>
+                        <select id="atStatus"><option>Aberto</option><option>Em andamento</option><option>Finalizado</option></select>
+                    </div>
+                    <button class="btn-save" onclick="salvarAtendimento()">Registrar Atendimento</button>
+                </div>
+                <div class="card"><div class="table-responsive"><table id="tabAt"></table></div></div>
+            </section>
+
+            <section id="colaboradores" class="tela">
+                <div class="card">
+                    <h2>Colaboradores</h2>
+                    <input type="hidden" id="colId">
+                    <div class="form-group">
+                        <input id="colNome" placeholder="Nome">
+                        <input id="colUser" placeholder="Usuário">
+                        <input type="password" id="colPass" placeholder="Senha">
+                        <input type="date" id="colNasc" title="Nascimento">
+                        <input id="colEnd" placeholder="Endereço">
+                        <input type="date" id="colInicio" title="Data de Início">
+                    </div>
+                    <button class="btn-save" onclick="salvarUsuario('Colaborador')">Salvar Colaborador</button>
+                    <button onclick="limparCampos('col')">Novo</button>
+                </div>
+                <div class="card"><div class="table-responsive"><table id="tabCol"></table></div></div>
+            </section>
+
+            <section id="diretoria" class="tela">
+                <div class="card">
+                    <h2>Diretoria</h2>
+                    <input type="hidden" id="dirId">
+                    <div class="form-group">
+                        <input id="dirNome" placeholder="Nome">
+                        <input id="dirUser" placeholder="Usuário">
+                        <input type="password" id="dirPass" placeholder="Senha">
+                        <input type="date" id="dirNasc" title="Nascimento">
+                        <input id="dirEnd" placeholder="Endereço">
+                        <input type="date" id="dirInicio" title="Data de Início">
+                    </div>
+                    <button class="btn-save" onclick="salvarUsuario('Diretoria')">Salvar Diretor</button>
+                    <button onclick="limparCampos('dir')">Novo</button>
+                </div>
+                <div class="card"><div class="table-responsive"><table id="tabDir"></table></div></div>
+            </section>
+
+            <section id="relatorios" class="tela">
+                <div class="card">
+                    <h2>Relatórios</h2>
+                    <button class="btn-save" onclick="gerarRelatorioReal()">Gerar Dados</button>
+                    <button class="btn-pdf" onclick="pdfGeral()">Exportar PDF Geral</button>
+                    <button onclick="window.print()">Imprimir Página</button>
+                    <canvas id="graficoAtendimentos" style="max-height: 250px; margin-top:20px"></canvas>
+                </div>
+                <div class="card"><div class="table-responsive"><table id="tabRelatorio"></table></div></div>
+            </section>
+
+            <section id="config" class="tela">
+                <div class="card" style="border:1px solid red">
+                    <h2>Zona de Risco</h2>
+                    <p>Digite a senha master para apagar todos os dados permanentemente.</p>
+                    <input type="password" id="masterReset" placeholder="Senha Master">
+                    <button class="btn-del" style="width:100%" onclick="zerar()">APAGAR TUDO</button>
+                </div>
+            </section>
+        </main>
+    </div>
+</div>
+
+<script>
+    const MASTER = "ASSO2026"; // Esta é a senha master//
+    let chartInstance = null;
+    let usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
+    let associados = JSON.parse(localStorage.getItem("associados")) || [];
+    let atendimentos = JSON.parse(localStorage.getItem("atendimentos")) || [];
+
+    // --- ACESSO ---
+    function login(){
+        let u = usuarios.find(x => x.usuario === loginUser.value && x.senha === loginPass.value);
+        if(u){ localStorage.setItem("logado", JSON.stringify(u)); iniciar(); }
+        else alert("Usuário ou senha incorretos.");
+    }
+    function criarAdmin(){
+        if(masterCreate.value === MASTER){
+            usuarios.push({id:Date.now(), nome:"Administrador", usuario:"admin", senha:"123", nivel:"Diretoria"});
+            localStorage.setItem("usuarios", JSON.stringify(usuarios));
+            alert("Acesso mestre criado: admin / 123");
+        }
+    }
+    function iniciar(){
+        let u = JSON.parse(localStorage.getItem("logado"));
+        if(!u) return;
+        loginTela.style.display="none"; sistema.style.display="block";
+        nomeUser.innerText = u.nome;
+        if(u.nivel !== "Diretoria") document.getElementById("menuAdminOnly").style.display="none";
+        listarTudo();
+    }
+    function logout(){ localStorage.removeItem("logado"); location.reload(); }
+    function mostrar(id){ document.querySelectorAll(".tela").forEach(t => t.classList.remove("ativa")); document.getElementById(id).classList.add("ativa"); }
+
+    // --- LOGICA SALVAR ---
+    function calcularTempo(dataInicio) {
+        if(!dataInicio) return "-";
+        let diff = new Date().getFullYear() - new Date(dataInicio).getFullYear();
+        return diff + " anos";
+    }
+
+    function salvarUsuario(nivel){
+        let p = nivel === "Diretoria" ? "dir" : "col";
+        let id = document.getElementById(p+"Id").value || Date.now();
+        let obj = {
+            id, nome: document.getElementById(p+"Nome").value,
+            usuario: document.getElementById(p+"User").value,
+            senha: document.getElementById(p+"Pass").value,
+            nasc: document.getElementById(p+"Nasc").value,
+            end: document.getElementById(p+"End").value,
+            inicio: document.getElementById(p+"Inicio").value, nivel
+        };
+        let i = usuarios.findIndex(u => u.id == id);
+        if(i >= 0) usuarios[i] = obj; else usuarios.push(obj);
+        localStorage.setItem("usuarios", JSON.stringify(usuarios));
+        limparCampos(p); listarTudo();
+    }
+
+    function salvarAssociado(){
+        let id = assocId.value || Date.now();
+        let obj = {
+            id, nome: assocNome.value, cpf: assocCpf.value,
+            entrada: assocEntrada.value, tel: assocTel.value, end: assocEnd.value
+        };
+        let i = associados.findIndex(a => a.id == id);
+        if(i >= 0) associados[i] = obj; else associados.push(obj);
+        localStorage.setItem("associados", JSON.stringify(associados));
+        limparCampos('assoc'); listarTudo();
+    }
+
+    function salvarAtendimento(){
+        let u = JSON.parse(localStorage.getItem("logado"));
+        atendimentos.push({
+            id: Date.now(), data: new Date().toLocaleDateString(),
+            assoc: atAssocBusca.value, servico: atServico.value, status: atStatus.value, colab: u.nome
+        });
+        localStorage.setItem("atendimentos", JSON.stringify(atendimentos));
+        listarTudo();
+    }
+
+    // --- LISTAGENS ---
+    function listarTudo(){
+        // Associados
+        tabAssoc.innerHTML = "<tr><th>Nome</th><th>CPF</th><th>Ações</th></tr>" + associados.map(a => `
+            <tr><td>${a.nome}</td><td>${a.cpf}</td><td>
+                <button class="btn-edit" onclick="editarAssoc(${a.id})">✏️</button>
+                <button class="btn-del" onclick="excluirItem(${a.id}, 'associados')">🗑️</button>
+                <button class="btn-pdf" onclick="pdfIndividual(${a.id}, 'associados')">PDF</button>
+                <button onclick="imprimirUnico(${a.id})">🖨️</button>
+            </td></tr>`).join("");
+
+        atAssocBusca.innerHTML = associados.map(a => `<option>${a.nome}</option>`).join("");
+
+        // Atendimentos
+        tabAt.innerHTML = "<tr><th>Associado</th><th>Serviço</th><th>Ações</th></tr>" + atendimentos.map(at => `
+            <tr><td>${at.assoc}</td><td>${at.servico}</td><td>
+                <button class="btn-pdf" onclick="pdfIndividual(${at.id}, 'atendimentos')">PDF</button>
+                <button onclick="imprimirAtendimento(${at.id})">🖨️</button>
+                <button class="btn-del" onclick="excluirItem(${at.id}, 'atendimentos')">🗑️</button>
+            </td></tr>`).join("");
+
+        renderUserTab(tabCol, "Colaborador");
+        renderUserTab(tabDir, "Diretoria");
+    }
+
+    function renderUserTab(el, nivel){
+        el.innerHTML = "<tr><th>Nome</th><th>Tempo</th><th>Ações</th></tr>" + 
+            usuarios.filter(u => u.nivel === nivel).map(u => `
+            <tr><td>${u.nome}</td><td>${calcularTempo(u.inicio)}</td><td>
+                <button class="btn-edit" onclick="editarUser(${u.id}, '${nivel}')">✏️</button>
+                <button class="btn-del" onclick="excluirItem(${u.id}, 'usuarios')">🗑️</button>
+                <button class="btn-pdf" onclick="pdfIndividual(${u.id}, 'usuarios')">PDF</button>
+            </td></tr>`).join("");
+    }
+
+    // --- EDITAR / EXCLUIR ---
+    function excluirItem(id, tipo){
+        if(confirm("Tem certeza que deseja excluir?")){
+            if(tipo === 'associados') { associados = associados.filter(a => a.id != id); localStorage.setItem('associados', JSON.stringify(associados)); }
+            if(tipo === 'usuarios') { usuarios = usuarios.filter(u => u.id != id); localStorage.setItem('usuarios', JSON.stringify(usuarios)); }
+            if(tipo === 'atendimentos') { atendimentos = atendimentos.filter(at => at.id != id); localStorage.setItem('atendimentos', JSON.stringify(atendimentos)); }
+            listarTudo();
+        }
+    }
+
+    function editarAssoc(id){
+        let a = associados.find(x => x.id == id);
+        assocId.value = a.id; assocNome.value = a.nome; assocCpf.value = a.cpf;
+        assocEntrada.value = a.entrada; assocTel.value = a.tel; assocEnd.value = a.end;
+    }
+
+    function editarUser(id, nivel){
+        let u = usuarios.find(x => x.id == id);
+        let p = nivel === "Diretoria" ? "dir" : "col";
+        document.getElementById(p+"Id").value = u.id;
+        document.getElementById(p+"Nome").value = u.nome;
+        document.getElementById(p+"User").value = u.usuario;
+        document.getElementById(p+"Pass").value = u.senha;
+        document.getElementById(p+"Nasc").value = u.nasc;
+        document.getElementById(p+"End").value = u.end;
+        document.getElementById(p+"Inicio").value = u.inicio;
+    }
+
+    // --- PDF E IMPRESSAO ---
+    function pdfIndividual(id, tipo){
+        const { jsPDF } = window.jspdf; let doc = new jsPDF();
+        let lista = (tipo === 'associados') ? associados : (tipo === 'atendimentos' ? atendimentos : usuarios);
+        let item = lista.find(x => x.id == id);
+        doc.setFontSize(16); doc.text("FICHA INDIVIDUAL - ASSOPESCA", 10, 20);
+        doc.setFontSize(12); let y = 40;
+        for(let key in item) { doc.text(`${key.toUpperCase()}: ${item[key]}`, 10, y); y+=10; }
+        doc.save("ficha_assopesca.pdf");
+    }
+
+    function imprimirUnico(id){
+        let a = associados.find(x => x.id == id);
+        let win = window.open('', 'PRINT');
+        win.document.write(`<html><body><h1>Ficha Associado: ${a.nome}</h1><p>CPF: ${a.cpf}</p><p>Endereço: ${a.end}</p><p>Telefone: ${a.tel}</p></body></html>`);
+        win.print(); win.close();
+    }
+
+    function imprimirAtendimento(id) {
+        let at = atendimentos.find(x => x.id == id);
+        let win = window.open('', 'PRINT');
+        win.document.write(`<html><body style="padding:20px; font-family:Arial;"><h1>Comprovante de Atendimento</h1><p><strong>Associado:</strong> ${at.assoc}</p><p><strong>Serviço:</strong> ${at.servico}</p><p><strong>Data:</strong> ${at.data}</p><p><strong>Status:</strong> ${at.status}</p></body></html>`);
+        win.print(); win.close();
+    }
+
+    function gerarRelatorioReal(){
+        let cont = {}; atendimentos.forEach(a => cont[a.servico] = (cont[a.servico] || 0) + 1);
+        if(chartInstance) chartInstance.destroy();
+        chartInstance = new Chart(document.getElementById('graficoAtendimentos'), {
+            type: 'bar', data: { labels: Object.keys(cont), datasets: [{label:'Serviços Realizados', data: Object.values(cont), backgroundColor:'#006400'}] }
+        });
+        tabRelatorio.innerHTML = "<tr><th>Data</th><th>Associado</th><th>Serviço</th></tr>" + 
+            atendimentos.map(at => `<tr><td>${at.data}</td><td>${at.assoc}</td><td>${at.servico}</td></tr>`).join("");
+    }
+
+    function pdfGeral(){
+        const { jsPDF } = window.jspdf; let doc = new jsPDF();
+        doc.text("RELATÓRIO GERAL DE ATENDIMENTOS", 10, 10);
+        atendimentos.forEach((at, i) => doc.text(`${at.data} - ${at.assoc} - ${at.servico}`, 10, 25+(i*10)));
+        doc.save("relatorio_assopesca.pdf");
+    }
+
+    function limparCampos(p){ document.querySelectorAll(`input[id^=${p}]`).forEach(i => i.value = ""); }
+    function zerar(){ if(masterReset.value === MASTER){ localStorage.clear(); location.reload(); } else { alert("Senha Master Incorreta!"); } }
+
+    window.onload = iniciar;
+</script>
+</body>
+</html>
