@@ -59,7 +59,9 @@
 <div id="sistema" style="display:none">
     <header>
         <div><strong>ASSOPESCA - Gestão</strong></div>
-        <div><span id="nomeUser"></span> | <button onclick="logout()" style="background:red; color:white; border:none; padding:5px; border-radius:3px; cursor:pointer">Sair</button></div>
+        <div><span id="nomeUser"></span> | <button onclick="logout()" style="background:red; color:white; border:none; padding:5px; border-radius:3px; cursor:pointer">Sair</button>
+            <button onclick="runSelfTest()" style="background:#444; color:white; border:none; padding:5px; border-radius:3px; cursor:pointer; margin-left:8px">Testar DB</button>
+        </div>
     </header>
 
     <div class="container">
@@ -185,9 +187,134 @@ ASSOPESCA</p>
 <script>
     const MASTER = "ASSO2026"; // Esta é a senha master//
     let chartInstance = null;
-    let usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
-    let associados = JSON.parse(localStorage.getItem("associados")) || [];
-    let atendimentos = JSON.parse(localStorage.getItem("atendimentos")) || [];
+    let usuarios = [];
+    let associados = [];
+    let atendimentos = [];
+
+    // --- IndexedDB wrapper ---
+    const DB_NAME = 'assopescaDB';
+    const DB_VERSION = 1;
+    let dbInstance = null;
+
+    function openDB(){
+        return new Promise((resolve, reject) => {
+            const req = indexedDB.open(DB_NAME, DB_VERSION);
+            req.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if(!db.objectStoreNames.contains('usuarios')) db.createObjectStore('usuarios', { keyPath: 'id' });
+                if(!db.objectStoreNames.contains('associados')) db.createObjectStore('associados', { keyPath: 'id' });
+                if(!db.objectStoreNames.contains('atendimentos')) db.createObjectStore('atendimentos', { keyPath: 'id' });
+            };
+            req.onsuccess = (e) => resolve(e.target.result);
+            req.onerror = (e) => reject(e.target.error);
+        });
+    }
+
+    async function dbInit(){ dbInstance = await openDB(); }
+
+    function dbGetAll(store){
+        return new Promise((resolve, reject) => {
+            const tx = dbInstance.transaction(store, 'readonly');
+            const os = tx.objectStore(store);
+            const req = os.getAll();
+            req.onsuccess = () => resolve(req.result || []);
+            req.onerror = () => reject(req.error);
+        });
+    }
+
+    function dbSaveArray(store, arr){
+        return new Promise((resolve, reject) => {
+            const tx = dbInstance.transaction(store, 'readwrite');
+            const os = tx.objectStore(store);
+            const clearReq = os.clear();
+            clearReq.onsuccess = () => {
+                for(const item of arr) os.put(item);
+            };
+            tx.oncomplete = () => resolve();
+            tx.onerror = (e) => reject(e);
+        });
+    }
+
+    function dbPut(store, obj){
+        return new Promise((resolve, reject) => {
+            const tx = dbInstance.transaction(store, 'readwrite');
+            const os = tx.objectStore(store);
+            const req = os.put(obj);
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+        });
+    }
+
+    function dbDelete(store, id){
+        return new Promise((resolve, reject) => {
+            const tx = dbInstance.transaction(store, 'readwrite');
+            const os = tx.objectStore(store);
+            const req = os.delete(id);
+            req.onsuccess = () => resolve();
+            req.onerror = () => reject(req.error);
+        });
+    }
+
+    function dbClearAll(){
+        return new Promise((resolve, reject) => {
+            const req = indexedDB.deleteDatabase(DB_NAME);
+            req.onsuccess = () => resolve();
+            req.onerror = (e) => reject(e.target.error);
+            req.onblocked = () => console.warn('delete blocked');
+        });
+    }
+
+    async function migrateLocalStorageToIndexedDB(){
+        if(localStorage.getItem('migratedToIDB')) return;
+        const u = JSON.parse(localStorage.getItem('usuarios') || '[]');
+        const a = JSON.parse(localStorage.getItem('associados') || '[]');
+        const at = JSON.parse(localStorage.getItem('atendimentos') || '[]');
+        if(u.length) await dbSaveArray('usuarios', u);
+        if(a.length) await dbSaveArray('associados', a);
+        if(at.length) await dbSaveArray('atendimentos', at);
+        localStorage.setItem('migratedToIDB', '1');
+    }
+
+    async function loadAllFromDB(){
+        usuarios = await dbGetAll('usuarios');
+        associados = await dbGetAll('associados');
+        atendimentos = await dbGetAll('atendimentos');
+    }
+
+    // --- Self-test runner (cria registros de teste e valida persistência) ---
+    async function runSelfTest(){
+        try{
+            console.log('RunSelfTest: iniciando...');
+            await dbInit();
+            await migrateLocalStorageToIndexedDB();
+            const beforeU = (await dbGetAll('usuarios')).length;
+            const beforeA = (await dbGetAll('associados')).length;
+            const beforeAt = (await dbGetAll('atendimentos')).length;
+
+            const idSuffix = Date.now();
+            const testUser = { id: 'test-user-'+idSuffix, nome: 'TESTE USUARIO', usuario: 'testuser_'+idSuffix, senha: 'test', inicio: new Date().toISOString(), nivel: 'Colaborador' };
+            const testAssoc = { id: 'test-assoc-'+idSuffix, nome: 'TESTE ASSOCIADO', cpf: '000.000.000-00', entrada: new Date().toISOString(), tel: '000000000', end: 'Endereco Teste' };
+            const testAt = { id: 'test-at-'+idSuffix, data: new Date().toLocaleDateString(), assoc: testAssoc.nome, servico: 'Teste Serviço', status: 'Aberto', colab: testUser.nome };
+
+            await dbPut('usuarios', testUser);
+            await dbPut('associados', testAssoc);
+            await dbPut('atendimentos', testAt);
+
+            await loadAllFromDB();
+
+            const afterU = usuarios.filter(u => u.id === testUser.id).length;
+            const afterA = associados.filter(a => a.id === testAssoc.id).length;
+            const afterAt = atendimentos.filter(at => at.id === testAt.id).length;
+
+            const ok = afterU === 1 && afterA === 1 && afterAt === 1;
+            console.log('RunSelfTest result:', { beforeU, beforeA, beforeAt, afterU, afterA, afterAt });
+            if(ok) alert('Teste concluído: registros gravados e lidos com sucesso. Confira o console para detalhes.');
+            else alert('Teste falhou: verifique o console para detalhes.');
+        }catch(err){
+            console.error('RunSelfTest erro:', err);
+            alert('Erro ao executar teste. Veja o console.');
+        }
+    }
 
     // --- ACESSO ---
     function login(){
@@ -195,10 +322,10 @@ ASSOPESCA</p>
         if(u){ localStorage.setItem("logado", JSON.stringify(u)); iniciar(); }
         else alert("Usuário ou senha incorretos.");
     }
-    function criarAdmin(){
+    async function criarAdmin(){
         if(masterCreate.value === MASTER){
             usuarios.push({id:Date.now(), nome:"Administrador", usuario:"admin", senha:"123", nivel:"Diretoria"});
-            localStorage.setItem("usuarios", JSON.stringify(usuarios));
+            await dbSaveArray('usuarios', usuarios);
             alert("Acesso mestre criado: admin / 123");
         }
     }
@@ -220,7 +347,7 @@ ASSOPESCA</p>
         return diff + " anos";
     }
 
-    function salvarUsuario(nivel){
+    async function salvarUsuario(nivel){
         let p = nivel === "Diretoria" ? "dir" : "col";
         let id = document.getElementById(p+"Id").value || Date.now();
         let obj = {
@@ -233,11 +360,11 @@ ASSOPESCA</p>
         };
         let i = usuarios.findIndex(u => u.id == id);
         if(i >= 0) usuarios[i] = obj; else usuarios.push(obj);
-        localStorage.setItem("usuarios", JSON.stringify(usuarios));
+        await dbSaveArray('usuarios', usuarios);
         limparCampos(p); listarTudo();
     }
 
-    function salvarAssociado(){
+    async function salvarAssociado(){
         let id = assocId.value || Date.now();
         let obj = {
             id, nome: assocNome.value, cpf: assocCpf.value,
@@ -245,17 +372,17 @@ ASSOPESCA</p>
         };
         let i = associados.findIndex(a => a.id == id);
         if(i >= 0) associados[i] = obj; else associados.push(obj);
-        localStorage.setItem("associados", JSON.stringify(associados));
+        await dbSaveArray('associados', associados);
         limparCampos('assoc'); listarTudo();
     }
 
-    function salvarAtendimento(){
+    async function salvarAtendimento(){
         let u = JSON.parse(localStorage.getItem("logado"));
         atendimentos.push({
             id: Date.now(), data: new Date().toLocaleDateString(),
             assoc: atAssocBusca.value, servico: atServico.value, status: atStatus.value, colab: u.nome
         });
-        localStorage.setItem("atendimentos", JSON.stringify(atendimentos));
+        await dbSaveArray('atendimentos', atendimentos);
         listarTudo();
     }
 
@@ -295,11 +422,11 @@ ASSOPESCA</p>
     }
 
     // --- EDITAR / EXCLUIR ---
-    function excluirItem(id, tipo){
+    async function excluirItem(id, tipo){
         if(confirm("Tem certeza que deseja excluir?")){
-            if(tipo === 'associados') { associados = associados.filter(a => a.id != id); localStorage.setItem('associados', JSON.stringify(associados)); }
-            if(tipo === 'usuarios') { usuarios = usuarios.filter(u => u.id != id); localStorage.setItem('usuarios', JSON.stringify(usuarios)); }
-            if(tipo === 'atendimentos') { atendimentos = atendimentos.filter(at => at.id != id); localStorage.setItem('atendimentos', JSON.stringify(atendimentos)); }
+            if(tipo === 'associados') { associados = associados.filter(a => a.id != id); await dbSaveArray('associados', associados); }
+            if(tipo === 'usuarios') { usuarios = usuarios.filter(u => u.id != id); await dbSaveArray('usuarios', usuarios); }
+            if(tipo === 'atendimentos') { atendimentos = atendimentos.filter(at => at.id != id); await dbSaveArray('atendimentos', atendimentos); }
             listarTudo();
         }
     }
@@ -365,9 +492,20 @@ ASSOPESCA</p>
     }
 
     function limparCampos(p){ document.querySelectorAll(`input[id^=${p}]`).forEach(i => i.value = ""); }
-    function zerar(){ if(masterReset.value === MASTER){ localStorage.clear(); location.reload(); } else { alert("Senha Master Incorreta!"); } }
+    async function zerar(){
+        if(masterReset.value === MASTER){
+            await dbClearAll();
+            localStorage.clear();
+            location.reload();
+        } else { alert("Senha Master Incorreta!"); }
+    }
 
-    window.onload = iniciar;
+    window.onload = async function(){
+        await dbInit();
+        await migrateLocalStorageToIndexedDB();
+        await loadAllFromDB();
+        iniciar();
+    };
 </script>
 </body>
 </html>
