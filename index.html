@@ -337,6 +337,13 @@ ASSOPESCA</p>
         if(u.nivel !== "Diretoria") document.getElementById("menuAdminOnly").style.display="none";
         listarTudo();
     }
+    
+    function hasAccessReports(){
+        try{
+            const u = JSON.parse(localStorage.getItem('logado') || 'null');
+            return u && u.nivel === 'Diretoria';
+        }catch(e){ return false; }
+    }
     function logout(){ localStorage.removeItem("logado"); location.reload(); }
     function mostrar(id){ document.querySelectorAll(".tela").forEach(t => t.classList.remove("ativa")); document.getElementById(id).classList.add("ativa"); }
 
@@ -475,6 +482,7 @@ ASSOPESCA</p>
     }
 
     function gerarRelatorioReal(){
+        if(!hasAccessReports()){ alert('Acesso restrito: somente usuários da Diretoria podem gerar este relatório.'); return; }
         let cont = {}; atendimentos.forEach(a => cont[a.servico] = (cont[a.servico] || 0) + 1);
         if(chartInstance) chartInstance.destroy();
         chartInstance = new Chart(document.getElementById('graficoAtendimentos'), {
@@ -485,6 +493,7 @@ ASSOPESCA</p>
     }
 
     function pdfGeral(){
+        if(!hasAccessReports()){ alert('Acesso restrito: somente usuários da Diretoria podem exportar este relatório.'); return; }
         const { jsPDF } = window.jspdf; let doc = new jsPDF();
         doc.text("RELATÓRIO GERAL DE ATENDIMENTOS", 10, 10);
         atendimentos.forEach((at, i) => doc.text(`${at.data} - ${at.assoc} - ${at.servico}`, 10, 25+(i*10)));
