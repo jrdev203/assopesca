@@ -6,6 +6,7 @@
     <title>Sistema ASSOPESCA Profissional</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!--<link rel="stylesheet" href="style.css">-->
     <style>
         :root { --verde: #006400; --verde2: #008000; --cinza: #f4f6f9; }
         * { box-sizing: border-box; }
@@ -32,6 +33,10 @@
         .card-boasvindas { background: linear-gradient(rgba(0,100,0,0.7), rgba(0,100,0,0.7)), url('./img/pinheiro.jpg') center/cover no-repeat; color: white; text-align: center; min-height: 500px; display: flex; flex-direction: column; justify-content: center; }
         .card-boasvindas h1 { font-size: 48px; margin: 0 12px 10px; font-weight: 700; line-height: 1.1; }
         .card-boasvindas p { font-size: 18px; margin: 0 12px; }
+        .status-badge { display: inline-block; padding: 5px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; }
+        .status-aberto { background-color: #ffc107; color: black; }
+        .status-em-andamento { background-color: #0d6efd; color: white; }
+        .status-finalizado { background-color: #28a745; color: white; }
         @media (max-width: 768px) {
             .card-boasvindas { min-height: 320px; padding: 20px; }
             .card-boasvindas h1 { font-size: 25px; }
@@ -47,7 +52,7 @@
 
 <div id="loginTela" class="login">
     <div class="login-box">
-        <h2 style="color:var(--verde)">SIGA-PESCA</h2>
+        <h2 style="color:var(--verde)">ASSOPESCA</h2>
         <input id="loginUser" placeholder="Usuário">
         <input type="password" id="loginPass" placeholder="Senha" onkeypress="if(event.key==='Enter') login()">
         <button class="btn-save" style="width:100%" onclick="login()">Entrar</button>
@@ -58,10 +63,7 @@
 
 <div id="sistema" style="display:none">
     <header>
-        <div style="display:flex; align-items:center; gap:10px">
-            <img src="./img/logo.png" alt="ASSOPESCA Logo" style="height:40px;">
-            <strong>Siga-Pesca - Sistema web de Registro e Monitoramento de Serviços da ASSOPESCA</strong>
-        </div>
+        <div><strong>ASSOPESCA - Gestão</strong></div>
         <div><span id="nomeUser"></span> | <button onclick="logout()" style="background:red; color:white; border:none; padding:5px; border-radius:3px; cursor:pointer">Sair</button>
             <button onclick="runSelfTest()" style="background:#444; color:white; border:none; padding:5px; border-radius:3px; cursor:pointer; margin-left:8px">Testar DB</button>
         </div>
@@ -72,9 +74,8 @@
             <button onclick="mostrar('inicio')">🏠 Início</button>
             <button onclick="mostrar('associados')">👥 Associados</button>
             <button onclick="mostrar('atendimento')">📝 Atendimento</button>
+            <button onclick="mostrar('relatorios')">📊 Relatórios</button>
             <div id="menuAdminOnly" style="display:contents">
-                <button onclick="mostrar('relatorios')">📊 Relatórios Geral</button>
-                <button onclick="mostrar('relatorioIndividual')">📈 Relatório Individual</button>
                 <button onclick="mostrar('colaboradores')">👨‍🔧 Colaboradores</button>
                 <button onclick="mostrar('diretoria')">🏛️ Diretoria</button>
                 <button onclick="mostrar('config')">⚙️ Configurações</button>
@@ -84,7 +85,7 @@
         <main>
             <section id="inicio" class="tela ativa">
                 <div class="card card-boasvindas">
-                    <h1>BEM-VINDO AO SISTEMA SIGA-PESCA</h1>
+                    <h1>BEM-VINDO AO SISTEMA ASSOPESCA</h1>
                     <p>SISTEMA WEB DE REGISTRO E MONITORAMENTO DE SERVIÇOS DA
 ASSOPESCA</p>
                 </div>
@@ -100,6 +101,10 @@ ASSOPESCA</p>
                         <input type="date" id="assocEntrada" title="Data Associação">
                         <input id="assocTel" placeholder="Telefone">
                         <input id="assocEnd" placeholder="Endereço">
+                        <input id="assocBairro" placeholder="Bairro">
+                        <input id="assocCidade" placeholder="Cidade">
+                        <input id="assocEstado" placeholder="Estado">
+                        <input id="assocCep" placeholder="CEP">
                     </div>
                     <button class="btn-save" onclick="salvarAssociado()">Salvar Associado</button>
                     <button onclick="limparCampos('assoc')">Novo</button>
@@ -139,6 +144,10 @@ ASSOPESCA</p>
                         <input type="password" id="colPass" placeholder="Senha">
                         <input type="date" id="colNasc" title="Nascimento">
                         <input id="colEnd" placeholder="Endereço">
+                        <input id="colBairro" placeholder="Bairro">
+                        <input id="colCidade" placeholder="Cidade">
+                        <input id="colEstado" placeholder="Estado">
+                        <input id="colCep" placeholder="CEP">
                         <input type="date" id="colInicio" title="Data de Início">
                     </div>
                     <button class="btn-save" onclick="salvarUsuario('Colaborador')">Salvar Colaborador</button>
@@ -157,6 +166,10 @@ ASSOPESCA</p>
                         <input type="password" id="dirPass" placeholder="Senha">
                         <input type="date" id="dirNasc" title="Nascimento">
                         <input id="dirEnd" placeholder="Endereço">
+                        <input id="dirBairro" placeholder="Bairro">
+                        <input id="dirCidade" placeholder="Cidade">
+                        <input id="dirEstado" placeholder="Estado">
+                        <input id="dirCep" placeholder="CEP">
                         <input type="date" id="dirInicio" title="Data de Início">
                     </div>
                     <button class="btn-save" onclick="salvarUsuario('Diretoria')">Salvar Diretor</button>
@@ -167,29 +180,13 @@ ASSOPESCA</p>
 
             <section id="relatorios" class="tela">
                 <div class="card">
-                    <h2>Relatórios - Geral de Colaboradores</h2>
-                    <button class="btn-save" onclick="gerarGraficoColaboradores()">Atualizar Gráfico Geral</button>
+                    <h2>Relatórios</h2>
+                    <button class="btn-save" onclick="gerarRelatorioReal()">Gerar Dados</button>
                     <button class="btn-pdf" onclick="pdfGeral()">Exportar PDF Geral</button>
                     <button onclick="window.print()">Imprimir Página</button>
-                    <canvas id="graficoColaboradores" style="max-height: 300px; margin-top:20px"></canvas>
+                    <canvas id="graficoAtendimentos" style="max-height: 250px; margin-top:20px"></canvas>
                 </div>
-                <div class="card"><div class="table-responsive"><table id="tabRelatorioGeral"></table></div></div>
-            </section>
-
-            <section id="relatorioIndividual" class="tela">
-                <div class="card">
-                    <h2>Relatórios - Colaborador Individual</h2>
-                    <div class="form-group">
-                        <select id="selecionarColaborador" onchange="gerarGraficoIndividual()">
-                            <option value="">Selecione um colaborador...</option>
-                        </select>
-                        <button class="btn-save" onclick="gerarGraficoIndividual()">Atualizar Relatório</button>
-                    </div>
-                    <div id="relIndividualContainer" style="display:none;">
-                        <canvas id="graficoIndividual" style="max-height: 300px; margin-top:20px"></canvas>
-                        <div class="table-responsive" style="margin-top:20px"><table id="tabRelatorioIndividual"></table></div>
-                    </div>
-                </div>
+                <div class="card"><div class="table-responsive"><table id="tabRelatorio"></table></div></div>
             </section>
 
             <section id="config" class="tela">
@@ -203,12 +200,8 @@ ASSOPESCA</p>
         </main>
     </div>
 </div>
-
-<script>
-    const MASTER = "ASSO2026"; // Esta é a senha master//
+<script>const MASTER = "ASSO2026"; // Esta é a senha master//
     let chartInstance = null;
-    let chartColaboradores = null;
-    let chartIndividual = null;
     let usuarios = [];
     let associados = [];
     let atendimentos = [];
@@ -314,8 +307,8 @@ ASSOPESCA</p>
             const beforeAt = (await dbGetAll('atendimentos')).length;
 
             const idSuffix = Date.now();
-            const testUser = { id: 'test-user-'+idSuffix, nome: 'TESTE USUARIO', usuario: 'testuser_'+idSuffix, senha: 'test', inicio: new Date().toISOString(), nivel: 'Colaborador' };
-            const testAssoc = { id: 'test-assoc-'+idSuffix, nome: 'TESTE ASSOCIADO', cpf: '000.000.000-00', entrada: new Date().toISOString(), tel: '000000000', end: 'Endereco Teste' };
+            const testUser = { id: 'test-user-'+idSuffix, nome: 'TESTE USUARIO', usuario: 'testuser_'+idSuffix, senha: 'test', inicio: new Date().toISOString(), nivel: 'Colaborador', bairro: 'Bairro Teste', cidade: 'Cidade Teste', estado: 'UF', cep: '00000-000' };
+            const testAssoc = { id: 'test-assoc-'+idSuffix, nome: 'TESTE ASSOCIADO', cpf: '000.000.000-00', entrada: new Date().toISOString(), tel: '000000000', end: 'Endereco Teste', bairro: 'Bairro Teste', cidade: 'Cidade Teste', estado: 'UF', cep: '00000-000' };
             const testAt = { id: 'test-at-'+idSuffix, data: new Date().toLocaleDateString(), assoc: testAssoc.nome, servico: 'Teste Serviço', status: 'Aberto', colab: testUser.nome };
 
             await dbPut('usuarios', testUser);
@@ -359,13 +352,6 @@ ASSOPESCA</p>
         if(u.nivel !== "Diretoria") document.getElementById("menuAdminOnly").style.display="none";
         listarTudo();
     }
-    
-    function hasAccessReports(){
-        try{
-            const u = JSON.parse(localStorage.getItem('logado') || 'null');
-            return u && u.nivel === 'Diretoria';
-        }catch(e){ return false; }
-    }
     function logout(){ localStorage.removeItem("logado"); location.reload(); }
     function mostrar(id){ document.querySelectorAll(".tela").forEach(t => t.classList.remove("ativa")); document.getElementById(id).classList.add("ativa"); }
 
@@ -385,6 +371,10 @@ ASSOPESCA</p>
             senha: document.getElementById(p+"Pass").value,
             nasc: document.getElementById(p+"Nasc").value,
             end: document.getElementById(p+"End").value,
+            bairro: document.getElementById(p+"Bairro").value,
+            cidade: document.getElementById(p+"Cidade").value,
+            estado: document.getElementById(p+"Estado").value,
+            cep: document.getElementById(p+"Cep").value,
             inicio: document.getElementById(p+"Inicio").value, nivel
         };
         let i = usuarios.findIndex(u => u.id == id);
@@ -397,7 +387,9 @@ ASSOPESCA</p>
         let id = assocId.value || Date.now();
         let obj = {
             id, nome: assocNome.value, cpf: assocCpf.value,
-            entrada: assocEntrada.value, tel: assocTel.value, end: assocEnd.value
+            entrada: assocEntrada.value, tel: assocTel.value, end: assocEnd.value,
+            bairro: assocBairro.value, cidade: assocCidade.value, 
+            estado: assocEstado.value, cep: assocCep.value
         };
         let i = associados.findIndex(a => a.id == id);
         if(i >= 0) associados[i] = obj; else associados.push(obj);
@@ -415,11 +407,24 @@ ASSOPESCA</p>
         listarTudo();
     }
 
+    async function alterarStatusAtendimento(id){
+        let at = atendimentos.find(x => x.id == id);
+        if(!at) return;
+        
+        const statusSequencia = ["Aberto", "Em andamento", "Finalizado"];
+        const indexAtual = statusSequencia.indexOf(at.status);
+        const proximoIndex = (indexAtual + 1) % statusSequencia.length;
+        
+        at.status = statusSequencia[proximoIndex];
+        await dbSaveArray('atendimentos', atendimentos);
+        listarTudo();
+    }
+
     // --- LISTAGENS ---
     function listarTudo(){
         // Associados
-        tabAssoc.innerHTML = "<tr><th>Nome</th><th>CPF</th><th>Ações</th></tr>" + associados.map(a => `
-            <tr><td>${a.nome}</td><td>${a.cpf}</td><td>
+        tabAssoc.innerHTML = "<tr><th>Nome</th><th>CPF</th><th>Cidade</th><th>Ações</th></tr>" + associados.map(a => `
+            <tr><td>${a.nome}</td><td>${a.cpf}</td><td>${a.cidade || "-"}</td><td>
                 <button class="btn-edit" onclick="editarAssoc(${a.id})">✏️</button>
                 <button class="btn-del" onclick="excluirItem(${a.id}, 'associados')">🗑️</button>
                 <button class="btn-pdf" onclick="pdfIndividual(${a.id}, 'associados')">PDF</button>
@@ -429,8 +434,11 @@ ASSOPESCA</p>
         atAssocBusca.innerHTML = associados.map(a => `<option>${a.nome}</option>`).join("");
 
         // Atendimentos
-        tabAt.innerHTML = "<tr><th>Associado</th><th>Serviço</th><th>Ações</th></tr>" + atendimentos.map(at => `
+        tabAt.innerHTML = "<tr><th>Associado</th><th>Serviço</th><th>Status</th><th>Ações</th></tr>" + atendimentos.map(at => `
             <tr><td>${at.assoc}</td><td>${at.servico}</td><td>
+                <span class="status-badge status-${at.status.toLowerCase().replace(/ /g, '-')}">${at.status}</span>
+            </td><td>
+                <button class="btn-save" onclick="alterarStatusAtendimento(${at.id})" title="Alterar Status">📊</button>
                 <button class="btn-pdf" onclick="pdfIndividual(${at.id}, 'atendimentos')">PDF</button>
                 <button onclick="imprimirAtendimento(${at.id})">🖨️</button>
                 <button class="btn-del" onclick="excluirItem(${at.id}, 'atendimentos')">🗑️</button>
@@ -438,7 +446,6 @@ ASSOPESCA</p>
 
         renderUserTab(tabCol, "Colaborador");
         renderUserTab(tabDir, "Diretoria");
-        populateColaboradores();
     }
 
     function renderUserTab(el, nivel){
@@ -465,6 +472,8 @@ ASSOPESCA</p>
         let a = associados.find(x => x.id == id);
         assocId.value = a.id; assocNome.value = a.nome; assocCpf.value = a.cpf;
         assocEntrada.value = a.entrada; assocTel.value = a.tel; assocEnd.value = a.end;
+        assocBairro.value = a.bairro || ""; assocCidade.value = a.cidade || "";
+        assocEstado.value = a.estado || ""; assocCep.value = a.cep || "";
     }
 
     function editarUser(id, nivel){
@@ -476,6 +485,10 @@ ASSOPESCA</p>
         document.getElementById(p+"Pass").value = u.senha;
         document.getElementById(p+"Nasc").value = u.nasc;
         document.getElementById(p+"End").value = u.end;
+        document.getElementById(p+"Bairro").value = u.bairro || "";
+        document.getElementById(p+"Cidade").value = u.cidade || "";
+        document.getElementById(p+"Estado").value = u.estado || "";
+        document.getElementById(p+"Cep").value = u.cep || "";
         document.getElementById(p+"Inicio").value = u.inicio;
     }
 
@@ -493,7 +506,7 @@ ASSOPESCA</p>
     function imprimirUnico(id){
         let a = associados.find(x => x.id == id);
         let win = window.open('', 'PRINT');
-        win.document.write(`<html><body><h1>Ficha Associado: ${a.nome}</h1><p>CPF: ${a.cpf}</p><p>Endereço: ${a.end}</p><p>Telefone: ${a.tel}</p></body></html>`);
+        win.document.write(`<html><body style="font-family:Arial; padding:20px;"><h1>Ficha Associado: ${a.nome}</h1><p><strong>CPF:</strong> ${a.cpf}</p><p><strong>Data Entrada:</strong> ${a.entrada}</p><p><strong>Telefone:</strong> ${a.tel}</p><p><strong>Endereço:</strong> ${a.end}</p><p><strong>Bairro:</strong> ${a.bairro || "-"}</p><p><strong>Cidade:</strong> ${a.cidade || "-"}</p><p><strong>Estado:</strong> ${a.estado || "-"}</p><p><strong>CEP:</strong> ${a.cep || "-"}</p></body></html>`);
         win.print(); win.close();
     }
 
@@ -505,7 +518,6 @@ ASSOPESCA</p>
     }
 
     function gerarRelatorioReal(){
-        if(!hasAccessReports()){ alert('Acesso restrito: somente usuários da Diretoria podem gerar este relatório.'); return; }
         let cont = {}; atendimentos.forEach(a => cont[a.servico] = (cont[a.servico] || 0) + 1);
         if(chartInstance) chartInstance.destroy();
         chartInstance = new Chart(document.getElementById('graficoAtendimentos'), {
@@ -516,90 +528,10 @@ ASSOPESCA</p>
     }
 
     function pdfGeral(){
-        if(!hasAccessReports()){ alert('Acesso restrito: somente usuários da Diretoria podem exportar este relatório.'); return; }
         const { jsPDF } = window.jspdf; let doc = new jsPDF();
         doc.text("RELATÓRIO GERAL DE ATENDIMENTOS", 10, 10);
         atendimentos.forEach((at, i) => doc.text(`${at.data} - ${at.assoc} - ${at.servico}`, 10, 25+(i*10)));
         doc.save("relatorio_assopesca.pdf");
-    }
-
-    function gerarGraficoColaboradores(){
-        if(!hasAccessReports()){ alert('Acesso restrito: somente usuários da Diretoria podem gerar este relatório.'); return; }
-        
-        // Contar atendimentos por colaborador
-        let contColaboradores = {};
-        atendimentos.forEach(a => {
-            contColaboradores[a.colab] = (contColaboradores[a.colab] || 0) + 1;
-        });
-        
-        if(chartColaboradores) chartColaboradores.destroy();
-        chartColaboradores = new Chart(document.getElementById('graficoColaboradores'), {
-            type: 'bar', 
-            data: { 
-                labels: Object.keys(contColaboradores), 
-                datasets: [{
-                    label:'Atendimentos por Colaborador', 
-                    data: Object.values(contColaboradores), 
-                    backgroundColor:'#006400'
-                }] 
-            },
-            options: { responsive: true }
-        });
-        
-        // Tabela geral
-        tabRelatorioGeral.innerHTML = "<tr><th>Data</th><th>Associado</th><th>Serviço</th><th>Colaborador</th><th>Status</th></tr>" + 
-            atendimentos.map(at => `<tr><td>${at.data}</td><td>${at.assoc}</td><td>${at.servico}</td><td>${at.colab}</td><td>${at.status}</td></tr>`).join("");
-    }
-    
-    function populateColaboradores(){
-        const select = document.getElementById('selecionarColaborador');
-        select.innerHTML = '<option value="">Selecione um colaborador...</option>';
-        usuarios.filter(u => u.nivel === 'Colaborador').forEach(u => {
-            const option = document.createElement('option');
-            option.value = u.nome;
-            option.textContent = u.nome;
-            select.appendChild(option);
-        });
-    }
-    
-    function gerarGraficoIndividual(){
-        if(!hasAccessReports()){ alert('Acesso restrito: somente usuários da Diretoria podem gerar este relatório.'); return; }
-        
-        const nomeColaborador = document.getElementById('selecionarColaborador').value;
-        if(!nomeColaborador){
-            alert('Selecione um colaborador!');
-            return;
-        }
-        
-        // Filtrar atendimentos do colaborador
-        const atendimentosColaborador = atendimentos.filter(a => a.colab === nomeColaborador);
-        
-        // Contar por serviço
-        let contServicos = {};
-        atendimentosColaborador.forEach(a => {
-            contServicos[a.servico] = (contServicos[a.servico] || 0) + 1;
-        });
-        
-        if(chartIndividual) chartIndividual.destroy();
-        chartIndividual = new Chart(document.getElementById('graficoIndividual'), {
-            type: 'doughnut', 
-            data: { 
-                labels: Object.keys(contServicos), 
-                datasets: [{
-                    label:'Serviços Realizados', 
-                    data: Object.values(contServicos), 
-                    backgroundColor:['#006400', '#008000', '#228B22', '#32CD32', '#90EE90']
-                }] 
-            },
-            options: { responsive: true }
-        });
-        
-        // Tabela individual
-        tabRelatorioIndividual.innerHTML = `<tr><th>Data</th><th>Associado</th><th>Serviço</th><th>Status</th></tr>` + 
-            atendimentosColaborador.map(at => `<tr><td>${at.data}</td><td>${at.assoc}</td><td>${at.servico}</td><td>${at.status}</td></tr>`).join("");
-        
-        // Mostrar container
-        document.getElementById('relIndividualContainer').style.display = 'block';
     }
 
     function limparCampos(p){ document.querySelectorAll(`input[id^=${p}]`).forEach(i => i.value = ""); }
@@ -617,6 +549,7 @@ ASSOPESCA</p>
         await loadAllFromDB();
         iniciar();
     };
-</script>
+    </script>
+<!--<script src="script.js"></script>-->
 </body>
 </html>
