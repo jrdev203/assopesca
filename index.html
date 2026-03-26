@@ -355,6 +355,10 @@ ASSOPESCA</p>
         loginTela.style.display="none"; sistema.style.display="block";
         nomeUser.innerText = u.nome;
         if(u.nivel !== "Diretoria") document.getElementById("menuAdminOnly").style.display="none";
+        // Mostrar relatório para Administrador e Diretoria
+        if(u.nivel === "Administrador" || u.nivel === "Diretoria") {
+            document.getElementById("btnRelatorios").style.display="block";
+        }
         listarTudo();
     }
     function logout(){ localStorage.removeItem("logado"); location.reload(); }
@@ -437,6 +441,13 @@ ASSOPESCA</p>
             </td></tr>`).join("");
 
         atAssocBusca.innerHTML = associados.map(a => `<option>${a.nome}</option>`).join("");
+
+        // Preencher filtro de colaboradores nos relatórios
+        let u = JSON.parse(localStorage.getItem("logado"));
+        if(u && (u.nivel === "Diretoria" || u.nivel === "Administrador") && document.getElementById('filtroColaborador')) {
+            document.getElementById('filtroColaborador').innerHTML = '<option value="">📊 Relatório Geral (Todos)</option>' + 
+                usuarios.filter(usr => usr.nivel === "Colaborador").map(usr => `<option value="${usr.nome}">${usr.nome}</option>`).join("");
+        }
 
         // Atendimentos
         tabAt.innerHTML = "<tr><th>Associado</th><th>Serviço</th><th>Status</th><th>Ações</th></tr>" + atendimentos.map(at => `
@@ -523,20 +534,83 @@ ASSOPESCA</p>
     }
 
     function gerarRelatorioReal(){
-        let cont = {}; atendimentos.forEach(a => cont[a.servico] = (cont[a.servico] || 0) + 1);
+        // Verificar se o usuário é Administrador ou Diretor
+        let u = JSON.parse(localStorage.getItem("logado"));
+        if(!u || (u.nivel !== "Diretoria" && u.nivel !== "Administrador")) {
+            alert("Acesso negado! Apenas Administrador e Diretoria podem visualizar relatórios.");
+            return;
+        }
+        
+        // Obter filtro selecionado
+        let filtroColaboradorSelecionado = document.getElementById('filtroColaborador').value;
+        
+        // Filtrar atendimentos conforme seleção
+        let atendimentosFiltrados = filtroColaboradorSelecionado ? 
+            atendimentos.filter(at => at.colab === filtroColaboradorSelecionado) : 
+            atendimentos;
+        
+        // Gerar gráfico com dados filtrados
+        let cont = {}; 
+        atendimentosFiltrados.forEach(a => cont[a.servico] = (cont[a.servico] || 0) + 1);
+        
         if(chartInstance) chartInstance.destroy();
+        let tituloChart = filtroColaboradorSelecionado ? 
+            `Serviços - ${filtroColaboradorSelecionado}` : 
+            'Serviços Realizados - Geral';
+        
         chartInstance = new Chart(document.getElementById('graficoAtendimentos'), {
-            type: 'bar', data: { labels: Object.keys(cont), datasets: [{label:'Serviços Realizados', data: Object.values(cont), backgroundColor:'#006400'}] }
+            type: 'bar', 
+            data: { 
+                labels: Object.keys(cont), 
+                datasets: [{
+                    label: tituloChart, 
+                    data: Object.values(cont), 
+                    backgroundColor: '#006400'
+                }] 
+            }
         });
-        tabRelatorio.innerHTML = "<tr><th>Data</th><th>Associado</th><th>Serviço</th></tr>" + 
-            atendimentos.map(at => `<tr><td>${at.data}</td><td>${at.assoc}</td><td>${at.servico}</td></tr>`).join("");
+        
+        // Exibir tabela com dados filtrados
+        tabRelatorio.innerHTML = "<tr><th>Data</th><th>Associado</th><th>Serviço</th><th>Colaborador</th></tr>" +
+            atendimentosFiltrados.map(at => `<tr><td>${at.data}</td><td>${at.assoc}</td><td>${at.servico}</td><td>${at.colab}</td></tr>`).join("");
     }
 
     function pdfGeral(){
+        // Verificar se o usuário é Administrador ou Diretor
+        let u = JSON.parse(localStorage.getItem("logado"));
+        if(!u || (u.nivel !== "Diretoria" && u.nivel !== "Administrador")) {
+            alert("Acesso negado! Apenas Administrador e Diretoria podem exportar relatórios.");
+            return;
+        }
+        
         const { jsPDF } = window.jspdf; let doc = new jsPDF();
-        doc.text("RELATÓRIO GERAL DE ATENDIMENTOS", 10, 10);
-        atendimentos.forEach((at, i) => doc.text(`${at.data} - ${at.assoc} - ${at.servico}`, 10, 25+(i*10)));
-        doc.save("relatorio_assopesca.pdf");
+        let filtroColaboradorSelecionado = document.getElementById('filtroColaborador').value;
+        
+        // Filtrar atendimentos conforme seleção
+        let atendimentosFiltrados = filtroColaboradorSelecionado ? 
+            atendimentos.filter(at => at.colab === filtroColaboradorSelecionado) : 
+            atendimentos;
+        
+        let titulo = filtroColaboradorSelecionado ? 
+            `RELATÓRIO DE ATENDIMENTOS - ${filtroColaboradorSelecionado}` : 
+            "RELATÓRIO GERAL DE ATENDIMENTOS";
+        
+        doc.setFontSize(14);
+        doc.text(titulo, 10, 10);
+        doc.setFontSize(11);
+        
+        let yPos = 25;
+        atendimentosFiltrados.forEach((at, i) => {
+            doc.text(`${at.data} - ${at.assoc} - ${at.servico} (${at.colab})`, 10, yPos);
+            yPos += 10;
+            if(yPos > 270) { doc.addPage(); yPos = 15; }
+        });
+        
+        let nomeArquivo = filtroColaboradorSelecionado ? 
+            `relatorio_${filtroColaboradorSelecionado.replace(/ /g, '_')}.pdf` : 
+            `relatorio_geral_assopesca.pdf`;
+        
+        doc.save(nomeArquivo);
     }
 
     function limparCampos(p){ document.querySelectorAll(`input[id^=${p}]`).forEach(i => i.value = ""); }
