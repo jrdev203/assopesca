@@ -74,7 +74,7 @@
             <button onclick="mostrar('inicio')">🏠 Início</button>
             <button onclick="mostrar('associados')">👥 Associados</button>
             <button onclick="mostrar('atendimento')">📝 Atendimento</button>
-            <button onclick="mostrar('relatorios')">📊 Relatórios</button>
+            <button id="btnRelatorios" onclick="mostrar('relatorios')" style="display:none">📊 Relatórios</button>
             <div id="menuAdminOnly" style="display:contents">
                 <button onclick="mostrar('colaboradores')">👨‍🔧 Colaboradores</button>
                 <button onclick="mostrar('diretoria')">🏛️ Diretoria</button>
@@ -180,9 +180,14 @@ ASSOPESCA</p>
 
             <section id="relatorios" class="tela">
                 <div class="card">
-                    <h2>Relatórios</h2>
+                    <h2>Relatórios de Atendimento</h2>
+                    <div class="form-group">
+                        <select id="filtroColaborador">
+                            <option value="">📊 Relatório Geral (Todos)</option>
+                        </select>
+                    </div>
                     <button class="btn-save" onclick="gerarRelatorioReal()">Gerar Dados</button>
-                    <button class="btn-pdf" onclick="pdfGeral()">Exportar PDF Geral</button>
+                    <button class="btn-pdf" onclick="pdfGeral()">Exportar PDF</button>
                     <button onclick="window.print()">Imprimir Página</button>
                     <canvas id="graficoAtendimentos" style="max-height: 250px; margin-top:20px"></canvas>
                 </div>
